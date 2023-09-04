@@ -17,23 +17,21 @@ async fn main() {
 
     // Loop to continually accept new clients.
     loop {
-        accept_client(&listener, &tx).await;
+        if let Err(e) = accept_client(&listener, &tx).await {
+            println!("Failed to accept client: {}", e);
+        }
     }
 }
 
 /// Accepts a new client and spawns a task to handle it.
-async fn accept_client(listener: &TcpListener, tx: &Sender<(String, SocketAddr)>) {
-    match listener.accept().await {
-        Ok((socket, addr)) => {
-            println!("Accepted client: {}", addr);
-            let tx = tx.clone();
-            let rx = tx.subscribe();
-            tokio::spawn(handle_messages(socket, tx, rx, addr));
-        },
-        Err(e) => {
-            println!("Failed to accept client: {}", e);
-        }
-    }
+async fn accept_client(listener: &TcpListener, tx: &Sender<(String, SocketAddr)>) -> Result<(), Box<dyn std::error::Error>> {
+    let (socket, addr) = listener.accept().await?;
+
+    println!("Accepted client: {}", addr);
+    let tx = tx.clone();
+    let rx = tx.subscribe();
+    tokio::spawn(handle_messages(socket, tx, rx, addr));
+    Ok(())
 }
 
 /// Handles the connected client.
@@ -42,7 +40,7 @@ async fn handle_messages(
     tx: Sender<(String, SocketAddr)>,
     mut rx: broadcast::Receiver<(String, SocketAddr)>,
     addr: SocketAddr,
-) {
+) -> Result<(), Box<dyn std::error::Error>> {
     // Split the socket into a read and a write half.
     let (reader, mut write) = socket.split();
 
@@ -57,20 +55,28 @@ async fn handle_messages(
         tokio::select! {
             // Read a line from the client and broadcast it.
             result = reader.read_line(&mut line) => {
-                if result.unwrap() == 0 {
-                    break;
+                if let Ok(bytes_read) = result {
+                    if bytes_read == 0 {
+                        break;
+                    }
+                    tx.send((format!("{}: {}", addr, line), addr))?;
+                    line.clear();
+                } else {
+                    return Err("Error reading from client".into());
                 }
-                tx.send((format!("{}: {}", addr, line), addr)).unwrap();
-                line.clear();
             }
             // Receive a message from the channel and write it to the client.
             result = rx.recv() => {
-                let (msg, other_addr) = result.unwrap();
-                // Don't echo the message back to the sender.
-                if addr != other_addr {
-                    write.write_all(&msg.as_bytes()).await.unwrap();
+                if let Ok((msg, other_addr)) = result {
+                    if addr != other_addr {
+                        write.write_all(msg.as_bytes()).await?;
+                    }
+                } else {
+                    return Err("Error receiving broadcast".into());
                 }
             }
         }
     }
+    println!("Client {} disconnected", addr);
+    Ok(())
 }
