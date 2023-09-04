@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteTargetsManager">
+    <targets>
+      <target name="WSL - Ubuntu" type="wsl" uuid="bec33694-f33c-4db3-8139-11f39152a141">
+        <config>
+          <option name="distributionMsId" value="Ubuntu" />
+          <option name="projectRootOnTarget" value="{exitCode=0, timeout=false, cancelled=false, stdout=/mnt/c/Users/Jesse/AppData/Local/Programs/IntelliJ IDEA Ultimate/jbr/bin&#10;, stderr=}/chat-client" />
+        </config>
+        <ContributedStateBase type="RsLanguageRuntime">
+          <config>
+            <option name="cargoPath" value="/home/jesse/.cargo/bin/cargo" />
+            <option name="cargoVersion" value="1.72.0 (103a7ff2e 2023-08-15)" />
+            <option name="rustcPath" value="/home/jesse/.cargo/bin/rustc" />
+            <option name="rustcVersion" value="1.72.0 (5680fa18f 2023-08-23)" />
+          </config>
+        </ContributedStateBase>
+      </target>
+    </targets>
+  </component>
+</project>
